@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on: [zookeeper]
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - '9092:9092'
+
+  mongo:
+    image: mongo:4.0
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+
+  mongo-init:
+    image: mongo:4.0
+    depends_on: [mongo]
+    entrypoint: >
+      bash -c "
+      sleep 5 &&
+      mongosh --host mongo --eval 'rs.initiate({_id:\"rs0\",members:[{_id:0,host:\"mongo:27017\"}]});'
+      "
+    connect:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on: [kafka, mongo-init]
+    ports:
+      - '8083:8083'
+    environment:
+      BOOTSTRAP_SERVERS: 'kafka:9092'
+      GROUP_ID: '1'
+      CONFIG_STORAGE_TOPIC: 'connect-configs'
+      OFFSET_STORAGE_TOPIC: 'connect-offsets'
+      STATUS_STORAGE_TOPIC: 'connect-status'
+      CONNECT_PLUGIN_PATH: '/kafka/connect/debezium-connector-mongodb'
+    volumes:
+      - ./init-connector.sh:/docker-entrypoint-initdb.d/init-connector.sh
+
+
+volumes:
+  mongo_data:

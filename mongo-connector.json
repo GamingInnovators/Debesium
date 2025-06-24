@@ -1,0 +1,14 @@
+{
+  "name": "mongo-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mongodb.MongoDbConnector",
+    "mongodb.hosts": "rs0/195.200.6.202:27032",
+    "mongodb.user": "arcos-bridge-db",
+    "mongodb.password": "u8zfhamgexdtkpj2",
+    "mongodb.name": "dbserver1",
+    "database.include.list": "arcos-bridge",
+    "collection.include.list": ".*",
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewDocumentState"
+  }
+} 
