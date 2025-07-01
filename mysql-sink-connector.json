@@ -1,16 +1,17 @@
 {
-  "name": "postgres-sink-connector",
+  "name": "mysql-sink-connector",
   "config": {
     "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
     "tasks.max": "1",
     "topics.regex": "dbserver1\\.arcos-bridge\\..*",
-    "connection.url": "jdbc:postgresql://195.200.6.202:5497/api_gateway_db",
+    "connection.url": "jdbc:mysql://mysql:3306/api_gateway_db?useSSL=false&allowPublicKeyRetrieval=true",
     "connection.user": "api_gateway_db",
     "connection.password": "gW3^zL8@Rx!2Vm#Kp7Tq",
     "auto.create": "true",
     "auto.evolve": "true",
     "insert.mode": "upsert",
     "pk.mode": "record_key",
-    "pk.fields": "id"
+    "pk.fields": "id",
+    "delete.enabled": "true"
   }
 } 

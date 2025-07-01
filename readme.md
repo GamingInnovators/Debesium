@@ -2,12 +2,12 @@
 
 ## 📋 Descrição
 
-Este projeto implementa um pipeline de dados usando **Apache Kafka** e **Debezium** para capturar mudanças (Change Data Capture - CDC) de um banco de dados **MongoDB** e sincronizá-las com um banco **PostgreSQL**. O sistema utiliza a arquitetura de conectores Kafka para garantir uma sincronização em tempo real entre os bancos de dados.
+Este projeto implementa um pipeline de dados usando **Apache Kafka** e **Debezium** para capturar mudanças (Change Data Capture - CDC) de um banco de dados **MongoDB** e sincronizá-las com um banco **MySQL**. O sistema utiliza a arquitetura de conectores Kafka para garantir uma sincronização em tempo real entre os bancos de dados.
 
 ## 🏗️ Arquitetura
 
 ```
-MongoDB → Debezium Connector → Apache Kafka → JDBC Sink Connector → PostgreSQL
+MongoDB → Debezium Connector → Apache Kafka → JDBC Sink Connector → MySQL
 ```
 
 ### Componentes
@@ -16,7 +16,7 @@ MongoDB → Debezium Connector → Apache Kafka → JDBC Sink Connector → Post
 - **Apache Kafka**: Plataforma de streaming de dados
 - **MongoDB**: Banco de dados fonte (com replicação)
 - **Debezium Connect**: Serviço de conectores Kafka
-- **PostgreSQL**: Banco de dados de destino
+- **MySQL**: Banco de dados de destino
 
 ## 🚀 Como Executar
 
@@ -51,7 +51,7 @@ Debesium/
 ├── Dockerfile                  # Imagem personalizada do Debezium Connect
 ├── init-connector.sh          # Script de inicialização dos conectores
 ├── mongo-connector.json       # Configuração do conector MongoDB
-├── postgres-sink-connector.json # Configuração do conector PostgreSQL
+├── mysql-sink-connector.json  # Configuração do conector MySQL
 └── readme.md                  # Este arquivo
 ```
 
@@ -65,13 +65,14 @@ O conector MongoDB está configurado para:
 - Incluir todas as coleções (`.*`)
 - Extrair apenas o novo estado do documento
 
-### Conector PostgreSQL (Destino)
+### Conector MySQL (Destino)
 
-O conector PostgreSQL está configurado para:
-- Conectar ao PostgreSQL em `195.200.6.202:5497`
+O conector MySQL está configurado para:
+- Conectar ao MySQL local em `mysql:3306`
 - Banco de dados: `api_gateway_db`
 - Criar automaticamente tabelas e esquemas
 - Usar modo upsert com chave primária baseada no campo `id`
+- Habilitar operações de delete
 
 ## 🔍 Monitoramento
 
@@ -83,7 +84,7 @@ curl -X GET http://localhost:8083/connectors
 
 # Verificar status de um conector específico
 curl -X GET http://localhost:8083/connectors/mongo-connector/status
-curl -X GET http://localhost:8083/connectors/postgres-sink-connector/status
+curl -X GET http://localhost:8083/connectors/mysql-sink-connector/status
 ```
 
 ### Logs dos Serviços
@@ -94,6 +95,9 @@ docker-compose logs connect
 
 # Logs do MongoDB
 docker-compose logs mongo
+
+# Logs do MySQL
+docker-compose logs mysql
 
 # Logs do Kafka
 docker-compose logs kafka
@@ -110,7 +114,7 @@ docker-compose logs kafka
 ### Modificar Configurações
 
 - **MongoDB**: Edite `mongo-connector.json`
-- **PostgreSQL**: Edite `postgres-sink-connector.json`
+- **MySQL**: Edite `mysql-sink-connector.json`
 - **Docker**: Edite `docker-compose.yml`
 
 ## 🔧 Troubleshooting
@@ -153,6 +157,7 @@ docker-compose logs -f
 - **9092**: Apache Kafka
 - **2181**: Zookeeper
 - **27017**: MongoDB
+- **3306**: MySQL
 
 ## 🔒 Segurança
 
