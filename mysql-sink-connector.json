@@ -4,14 +4,23 @@
     "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
     "tasks.max": "1",
     "topics.regex": "dbserver1\\.arcos-bridge\\..*",
-    "connection.url": "jdbc:mysql://195.200.6.202:3396/arcos_db?useSSL=false&allowPublicKeyRetrieval=true",
+    "connection.url": "jdbc:mysql://195.200.6.202:3396/arcos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
     "connection.user": "arcos_db",
     "connection.password": "N7#vP9k$zL1@qXr!5TfG",
     "auto.create": "true",
     "auto.evolve": "true",
     "insert.mode": "upsert",
     "pk.mode": "record_key",
-    "pk.fields": "id",
-    "delete.enabled": "true"
+    "pk.fields": "_id",
+    "delete.enabled": "true",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false",
+    "table.name.format": "${topic}",
+    "transforms": "route",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": "dbserver1\\.arcos-bridge\\.(.*)",
+    "transforms.route.replacement": "$1"
   }
 } 

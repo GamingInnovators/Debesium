@@ -1,29 +1,30 @@
-# Debesium - Pipeline de Dados com Apache Kafka
+# Debesium - Pipeline de Dados MongoDB → MySQL
 
 ## 📋 Descrição
 
-Este projeto implementa um pipeline de dados usando **Apache Kafka** e **Debezium** para capturar mudanças (Change Data Capture - CDC) de um banco de dados **MongoDB** e sincronizá-las com um banco **MySQL**. O sistema utiliza a arquitetura de conectores Kafka para garantir uma sincronização em tempo real entre os bancos de dados.
+Este projeto implementa um pipeline de dados usando **Apache Kafka** e **Debezium** para capturar mudanças (Change Data Capture - CDC) do banco de dados **MongoDB externo** (`arcos-bridge`) e sincronizá-las com o banco **MySQL externo** (`arcos_db`). O sistema utiliza a arquitetura de conectores Kafka para garantir uma sincronização em tempo real entre os bancos de dados.
 
 ## 🏗️ Arquitetura
 
 ```
-MongoDB → Debezium Connector → Apache Kafka → JDBC Sink Connector → MySQL
+MongoDB (195.200.6.202:27032) → Debezium Connector → Apache Kafka → JDBC Sink Connector → MySQL (195.200.6.202:3396)
 ```
 
 ### Componentes
 
 - **Zookeeper**: Coordenação e gerenciamento de cluster
 - **Apache Kafka**: Plataforma de streaming de dados
-- **MongoDB**: Banco de dados fonte (com replicação)
-- **Debezium Connect**: Serviço de conectores Kafka
-- **MySQL**: Banco de dados de destino
+- **Debezium Connect**: Serviço de conectores Kafka com drivers personalizados
+- **MongoDB Externo**: Banco de dados fonte (`arcos-bridge`)
+- **MySQL Externo**: Banco de dados de destino (`arcos_db`)
 
 ## 🚀 Como Executar
 
 ### Pré-requisitos
 
-- Docker
+- Docker Desktop
 - Docker Compose
+- Acesso de rede aos bancos externos
 
 ### Passos para Execução
 
@@ -33,9 +34,9 @@ MongoDB → Debezium Connector → Apache Kafka → JDBC Sink Connector → MySQ
    cd Debesium
    ```
 
-2. **Execute o projeto**
+2. **Construa e execute o projeto**
    ```bash
-   docker-compose up -d
+   docker-compose up -d --build
    ```
 
 3. **Verifique se todos os serviços estão rodando**
@@ -43,15 +44,36 @@ MongoDB → Debezium Connector → Apache Kafka → JDBC Sink Connector → MySQ
    docker-compose ps
    ```
 
+4. **Monitore os logs**
+   ```bash
+   docker-compose logs -f connect
+   ```
+
+5. **Execute o script de monitoramento (Linux/Mac)**
+   ```bash
+   ./monitor.sh
+   ```
+
+   **No Windows PowerShell:**
+   ```powershell
+   # Verificar conectores
+   curl http://localhost:8083/connectors
+   
+   # Verificar status
+   curl http://localhost:8083/connectors/mongo-connector/status
+   curl http://localhost:8083/connectors/mysql-sink-connector/status
+   ```
+
 ## 📁 Estrutura do Projeto
 
 ```
 Debesium/
 ├── docker-compose.yml          # Configuração dos serviços Docker
-├── Dockerfile                  # Imagem personalizada do Debezium Connect
+├── Dockerfile                  # Imagem personalizada com drivers MySQL
 ├── init-connector.sh          # Script de inicialização dos conectores
 ├── mongo-connector.json       # Configuração do conector MongoDB
 ├── mysql-sink-connector.json  # Configuração do conector MySQL
+├── monitor.sh                 # Script de monitoramento
 └── readme.md                  # Este arquivo
 ```
 
@@ -60,19 +82,20 @@ Debesium/
 ### Conector MongoDB (Fonte)
 
 O conector MongoDB está configurado para:
-- Conectar ao MongoDB em `195.200.6.202:27032`
-- Capturar mudanças do banco `arcos-bridge`
-- Incluir todas as coleções (`.*`)
-- Extrair apenas o novo estado do documento
+- **Servidor**: `195.200.6.202:27032`
+- **Banco**: `arcos-bridge`
+- **Usuário**: `arcos-bridge-db`
+- **Modo**: Change Streams com snapshot inicial
+- **Coleções**: Todas as coleções do banco `arcos-bridge`
 
 ### Conector MySQL (Destino)
 
 O conector MySQL está configurado para:
-- Conectar ao MySQL local em `mysql:3306`
-- Banco de dados: `api_gateway_db`
-- Criar automaticamente tabelas e esquemas
-- Usar modo upsert com chave primária baseada no campo `id`
-- Habilitar operações de delete
+- **Servidor**: `195.200.6.202:3396`
+- **Banco**: `arcos_db`
+- **Usuário**: `arcos_db`
+- **Modo**: Upsert com chave primária `_id`
+- **Tabelas**: Criadas automaticamente baseadas nos tópicos Kafka
 
 ## 🔍 Monitoramento
 
@@ -80,11 +103,14 @@ O conector MySQL está configurado para:
 
 ```bash
 # Listar conectores
-curl -X GET http://localhost:8083/connectors
+curl http://localhost:8083/connectors
 
-# Verificar status de um conector específico
-curl -X GET http://localhost:8083/connectors/mongo-connector/status
-curl -X GET http://localhost:8083/connectors/mysql-sink-connector/status
+# Verificar status específico
+curl http://localhost:8083/connectors/mongo-connector/status
+curl http://localhost:8083/connectors/mysql-sink-connector/status
+
+# Verificar tópicos Kafka
+docker-compose exec kafka kafka-topics --bootstrap-server localhost:9092 --list
 ```
 
 ### Logs dos Serviços
@@ -93,47 +119,56 @@ curl -X GET http://localhost:8083/connectors/mysql-sink-connector/status
 # Logs do Kafka Connect
 docker-compose logs connect
 
-# Logs do MongoDB
-docker-compose logs mongo
-
-# Logs do MySQL
-docker-compose logs mysql
-
 # Logs do Kafka
 docker-compose logs kafka
+
+# Logs em tempo real
+docker-compose logs -f connect
 ```
 
 ## 🛠️ Desenvolvimento
 
-### Adicionar Novos Conectores
+### Reiniciar Conectores
 
-1. Crie um arquivo JSON com a configuração do conector
-2. Adicione o comando curl no script `init-connector.sh`
-3. Reinicie os serviços
+```bash
+# Reiniciar conector específico
+curl -X POST http://localhost:8083/connectors/mongo-connector/restart
+
+# Pausar conector
+curl -X PUT http://localhost:8083/connectors/mongo-connector/pause
+
+# Retomar conector
+curl -X PUT http://localhost:8083/connectors/mongo-connector/resume
+```
 
 ### Modificar Configurações
 
-- **MongoDB**: Edite `mongo-connector.json`
-- **MySQL**: Edite `mysql-sink-connector.json`
-- **Docker**: Edite `docker-compose.yml`
+1. **MongoDB**: Edite `mongo-connector.json`
+2. **MySQL**: Edite `mysql-sink-connector.json`
+3. **Reconstroir**: `docker-compose down && docker-compose up -d --build`
 
 ## 🔧 Troubleshooting
 
 ### Problemas Comuns
 
 1. **Conectores não iniciam**
-   - Verifique se o MongoDB está acessível
-   - Confirme as credenciais no arquivo de configuração
-   - Verifique os logs do serviço connect
+   - Verifique conectividade com os bancos externos
+   - Confirme credenciais nos arquivos JSON
+   - Verifique logs: `docker-compose logs connect`
 
-2. **Erro de conexão com banco**
-   - Valide endereços IP e portas
+2. **Erro de conexão MongoDB**
+   - Teste conexão: `telnet 195.200.6.202 27032`
+   - Verifique se o MongoDB tem replica set configurado
    - Confirme usuário e senha
-   - Verifique se o banco está rodando
 
-3. **Problemas de rede**
-   - Verifique se as portas não estão em uso
-   - Confirme configurações de firewall
+3. **Erro de conexão MySQL**
+   - Teste conexão: `telnet 195.200.6.202 3396`
+   - Verifique permissões do usuário MySQL
+   - Confirme se o banco `arcos_db` existe
+
+4. **Problemas de rede**
+   - Verifique firewall e portas
+   - Confirme se os IPs externos estão acessíveis
 
 ### Comandos Úteis
 
@@ -144,11 +179,14 @@ docker-compose restart
 # Parar e remover containers
 docker-compose down
 
-# Remover volumes (cuidado: apaga dados)
-docker-compose down -v
+# Reconstruir imagens
+docker-compose build --no-cache
 
-# Ver logs em tempo real
-docker-compose logs -f
+# Ver logs específicos
+docker-compose logs -f connect
+
+# Verificar saúde dos serviços
+docker-compose ps
 ```
 
 ## 📊 Portas Utilizadas
@@ -156,8 +194,6 @@ docker-compose logs -f
 - **8083**: Kafka Connect REST API
 - **9092**: Apache Kafka
 - **2181**: Zookeeper
-- **27017**: MongoDB
-- **3306**: MySQL
 
 ## 🔒 Segurança
 
@@ -165,12 +201,23 @@ docker-compose logs -f
 
 - Usar variáveis de ambiente
 - Implementar secrets management
-- Usar Docker secrets ou Kubernetes secrets
+- Usar Docker secrets
 - Criptografar senhas
 
-## 📝 Licença
+## 🎯 Fluxo de Dados
 
-Este projeto é de uso interno. Consulte a documentação oficial do Debezium para mais informações sobre licenciamento.
+1. **Captura**: Debezium monitora mudanças no MongoDB via Change Streams
+2. **Streaming**: Eventos são enviados para tópicos Kafka (`dbserver1.arcos-bridge.collection_name`)
+3. **Transformação**: Dados são transformados e roteados pelo Connect
+4. **Sink**: JDBC Sink Connector escreve dados no MySQL
+
+## 📝 Notas Importantes
+
+- O MongoDB deve ter replica set configurado para Change Streams
+- O MySQL deve permitir conexões externas
+- Tabelas são criadas automaticamente no MySQL
+- Chave primária baseada no `_id` do MongoDB
+- Suporte a operações INSERT, UPDATE e DELETE
 
 ## 🤝 Contribuição
 
@@ -183,7 +230,7 @@ Para contribuir com o projeto:
 
 ## 📚 Referências
 
-- [Debezium Documentation](https://debezium.io/documentation/)
+- [Debezium MongoDB Connector](https://debezium.io/documentation/reference/connectors/mongodb.html)
+- [Confluent JDBC Sink Connector](https://docs.confluent.io/kafka-connect-jdbc/current/)
 - [Apache Kafka Documentation](https://kafka.apache.org/documentation/)
 - [MongoDB Change Streams](https://docs.mongodb.com/manual/changeStreams/)
-- [Confluent JDBC Sink Connector](https://docs.confluent.io/kafka-connect-jdbc/current/)
