@@ -1,13 +1,21 @@
 FROM debezium/connect:2.5
 
-# Instalar o driver MySQL JDBC
+# Instalar dependências necessárias
 USER root
-RUN curl -L https://dev.mysql.com/get/Downloads/Connector-J/mysql-connector-java-8.0.33.tar.gz | tar -xz -C /tmp \
-    && cp /tmp/mysql-connector-java-8.0.33/mysql-connector-java-8.0.33.jar /kafka/libs/ \
-    && rm -rf /tmp/mysql-connector-java-8.0.33
+RUN microdnf install -y wget
 
-# Instalar o conector JDBC da Confluent
-RUN curl -L https://packages.confluent.io/maven/io/confluent/kafka-connect-jdbc/10.7.4/kafka-connect-jdbc-10.7.4.jar -o /kafka/libs/kafka-connect-jdbc-10.7.4.jar
+# Baixar e instalar o driver MySQL JDBC
+RUN wget -O /tmp/mysql-connector.jar https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.33/mysql-connector-java-8.0.33.jar \
+    && cp /tmp/mysql-connector.jar /kafka/libs/mysql-connector-java-8.0.33.jar \
+    && rm /tmp/mysql-connector.jar
+
+# Baixar e instalar o conector JDBC da Confluent
+RUN wget -O /tmp/kafka-connect-jdbc.jar https://packages.confluent.io/maven/io/confluent/kafka-connect-jdbc/10.7.4/kafka-connect-jdbc-10.7.4.jar \
+    && cp /tmp/kafka-connect-jdbc.jar /kafka/libs/kafka-connect-jdbc-10.7.4.jar \
+    && rm /tmp/kafka-connect-jdbc.jar
+
+# Verificar se os JARs foram instalados corretamente
+RUN ls -la /kafka/libs/mysql-connector-java-8.0.33.jar /kafka/libs/kafka-connect-jdbc-10.7.4.jar
 
 USER kafka
 
