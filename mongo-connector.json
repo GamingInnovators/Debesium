@@ -2,7 +2,7 @@
   "name": "mongo-connector",
   "config": {
     "connector.class": "io.debezium.connector.mongodb.MongoDbConnector",
-    "mongodb.connection.string": "mongodb://arcos-bridge-db:u8zfhamgexdtkpj2@195.200.6.202:27032/arcos-bridge?authSource=admin",
+    "mongodb.connection.string": "mongodb://admin:admin123@195.200.6.202:27032/admin?authSource=admin&replicaSet=rs0",
     "topic.prefix": "dbserver1",
     "database.include.list": "arcos-bridge",
     "collection.include.list": "arcos-bridge.*",
