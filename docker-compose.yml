@@ -41,19 +41,33 @@ services:
     ports:
       - '8083:8083'
     environment:
-      BOOTSTRAP_SERVERS: kafka:9092
-      GROUP_ID: debezium-cluster
-      CONFIG_STORAGE_TOPIC: connect-configs
-      OFFSET_STORAGE_TOPIC: connect-offsets
-      STATUS_STORAGE_TOPIC: connect-status
-      CONFIG_STORAGE_REPLICATION_FACTOR: 1
-      OFFSET_STORAGE_REPLICATION_FACTOR: 1
-      STATUS_STORAGE_REPLICATION_FACTOR: 1
-      LOG_LEVEL: INFO
-      KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
-      KEY_CONVERTER_SCHEMAS_ENABLE: 'false'
-      VALUE_CONVERTER_SCHEMAS_ENABLE: 'false'
+      # Configurações básicas do Kafka Connect
+      CONNECT_BOOTSTRAP_SERVERS: kafka:9092
+      CONNECT_GROUP_ID: debezium-cluster
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
+      
+      # Fatores de replicação
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      
+      # Configurações de REST API
+      CONNECT_REST_ADVERTISED_HOST_NAME: connect
+      CONNECT_REST_PORT: 8083
+      
+      # Conversores de dados
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_KEY_CONVERTER_SCHEMAS_ENABLE: 'false'
+      CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: 'false'
+      
+      # Plugin path
+      CONNECT_PLUGIN_PATH: '/kafka/connect,/kafka/libs'
+      
+      # Log level
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
     volumes:
       - ./mysql-source-connector.json:/tmp/mysql-source-connector.json
       - ./mysql-sink-connector.json:/tmp/mysql-sink-connector.json
