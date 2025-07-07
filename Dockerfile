@@ -4,9 +4,9 @@ FROM debezium/connect:2.5
 USER root
 RUN microdnf install -y wget
 
-# Baixar e instalar o driver MySQL JDBC
-RUN wget -O /tmp/mysql-connector.jar https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.33/mysql-connector-java-8.0.33.jar \
-    && cp /tmp/mysql-connector.jar /kafka/libs/mysql-connector-java-8.0.33.jar \
+# Baixar e instalar o driver MySQL JDBC (nova localização)
+RUN wget -O /tmp/mysql-connector.jar https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar \
+    && cp /tmp/mysql-connector.jar /kafka/libs/mysql-connector-j-8.4.0.jar \
     && rm /tmp/mysql-connector.jar
 
 # Baixar e instalar o conector JDBC da Confluent
@@ -15,7 +15,7 @@ RUN wget -O /tmp/kafka-connect-jdbc.jar https://packages.confluent.io/maven/io/c
     && rm /tmp/kafka-connect-jdbc.jar
 
 # Verificar se os JARs foram instalados corretamente
-RUN ls -la /kafka/libs/mysql-connector-java-8.0.33.jar /kafka/libs/kafka-connect-jdbc-10.7.4.jar
+RUN ls -la /kafka/libs/mysql-connector-j-8.4.0.jar /kafka/libs/kafka-connect-jdbc-10.7.4.jar
 
 USER kafka
 

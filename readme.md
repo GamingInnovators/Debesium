@@ -73,14 +73,17 @@ MySQL Source (195.200.6.202:3310/ArcosbridgeSQL) → Debezium → Kafka → JDBC
 
 ```
 Debesium/
-├── docker-compose.yml             # Configuração dos serviços Docker
-├── Dockerfile                     # Imagem personalizada com drivers MySQL
-├── init-connector.sh             # Script de inicialização do conector
-├── mysql-source-connector.json   # Configuração do conector MySQL
-├── test-mysql-connection.sh      # Teste de conexão MySQL (Linux/Mac)
-├── test-mysql-connection.ps1     # Teste de conexão MySQL (Windows)
-├── monitor.sh                    # Script de monitoramento
-└── readme.md                     # Este arquivo
+├── docker-compose.yml               # Configuração dos serviços Docker
+├── Dockerfile                       # Imagem personalizada com drivers MySQL
+├── init-connector.sh               # Script de inicialização dos conectores
+├── mysql-source-connector.json     # Configuração do conector MySQL Source
+├── mysql-sink-connector.json       # Configuração do conector MySQL Sink
+├── test-mysql-connection.sh        # Teste conexão MySQL Source (Linux/Mac)
+├── test-mysql-connection.ps1       # Teste conexão MySQL Source (Windows)
+├── test-mysql-sink-connection.sh   # Teste conexão MySQL Sink (Linux/Mac)
+├── test-mysql-sink-connection.ps1  # Teste conexão MySQL Sink (Windows)
+├── monitor.sh                      # Script de monitoramento
+└── readme.md                       # Este arquivo
 ```
 
 ## ⚙️ Configuração
@@ -188,9 +191,15 @@ curl -X DELETE http://localhost:8083/connectors/mysql-source-connector
    - Verifique: `SHOW VARIABLES LIKE 'log_bin';`
    - Configure: `log-bin=mysql-bin` no my.cnf
 
-4. **Problemas de rede**
+4. **Erro 404 no MySQL Connector (CORRIGIDO)**
+   - ✅ **Problema resolvido**: O MySQL Connector mudou de localização no Maven Central
+   - **Antigo**: `mysql:mysql-connector-java` (não funciona mais)
+   - **Novo**: `com.mysql:mysql-connector-j` (atualizado no Dockerfile)
+   - Dockerfile corrigido para usar a nova URL
+
+5. **Problemas de rede**
    - Verifique firewall e portas
-   - Confirme se o IP 195.200.6.202:3310 está acessível
+   - Confirme se os IPs 195.200.6.202:3310 e 3396 estão acessíveis
 
 ### Comandos Úteis
 
