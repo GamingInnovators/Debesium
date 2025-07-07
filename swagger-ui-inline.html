@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kafka Connect REST API - Debesium Pipeline</title>
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css" />
+    <style>
+        html {
+            box-sizing: border-box;
+            overflow: -moz-scrollbars-vertical;
+            overflow-y: scroll;
+        }
+        *, *:before, *:after {
+            box-sizing: inherit;
+        }
+        body {
+            margin:0;
+            background: #fafafa;
+        }
+        .swagger-ui .topbar {
+            background-color: #1b3139;
+        }
+        .swagger-ui .topbar .download-url-wrapper .select-label {
+            color: #f0f0f0;
+        }
+        .info .title {
+            color: #1b3139;
+        }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
+    <script>
+        window.onload = function() {
+            // YAML content inline para evitar problemas de CORS
+            const spec = {
+                "openapi": "3.0.3",
+                "info": {
+                    "title": "Kafka Connect REST API - Debesium Pipeline",
+                    "description": "API REST para gerenciar conectores Kafka Connect no pipeline Debesium.\n\nEsta API permite criar, monitorar e gerenciar conectores Debezium (source) e JDBC Sink (sink) para replicação de dados MySQL-to-MySQL.\n\n**Arquitetura:**\n- MySQL Source (195.200.6.202:3310) → Debezium → Kafka → JDBC Sink → MySQL Sink (195.200.6.202:3396)\n\n**Conectores Configurados:**\n- mysql-source-connector (Debezium MySQL CDC)\n- mysql-sink-connector (JDBC Sink)",
+                    "version": "1.0.0",
+                    "contact": {
+                        "name": "Debesium Team"
+                    }
+                },
+                "servers": [
+                    {
+                        "url": "http://localhost:8083",
+                        "description": "Kafka Connect Local Server"
+                    }
+                ],
+                "paths": {
+                    "/": {
+                        "get": {
+                            "summary": "Informações do servidor",
+                            "description": "Retorna informações básicas sobre o servidor Kafka Connect",
+                            "responses": {
+                                "200": {
+                                    "description": "Informações do servidor",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "version": { "type": "string" },
+                                                    "commit": { "type": "string" },
+                                                    "kafka_cluster_id": { "type": "string" }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/connectors": {
+                        "get": {
+                            "summary": "Listar conectores",
+                            "description": "Retorna uma lista de todos os conectores registrados",
+                            "responses": {
+                                "200": {
+                                    "description": "Lista de conectores",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "type": "array",
+                                                "items": { "type": "string" },
+                                                "example": ["mysql-source-connector", "mysql-sink-connector"]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "post": {
+                            "summary": "Criar conector",
+                            "description": "Cria um novo conector",
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "oneOf": [
+                                                { "$ref": "#/components/schemas/MySQLSourceConnector" },
+                                                { "$ref": "#/components/schemas/MySQLSinkConnector" }
+                                            ]
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "201": {
+                                    "description": "Conector criado com sucesso",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/ConnectorInfo" }
+                                        }
+                                    }
+                                },
+                                "400": {
+                                    "description": "Configuração inválida",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/Error" }
+                                        }
+                                    }
+                                },
+                                "409": {
+                                    "description": "Conector já existe",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/Error" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/connectors/{connector-name}": {
+                        "get": {
+                            "summary": "Obter configuração do conector",
+                            "description": "Retorna a configuração de um conector específico",
+                            "parameters": [
+                                {
+                                    "name": "connector-name",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": { "type": "string" },
+                                    "example": "mysql-source-connector"
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Configuração do conector",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/ConnectorInfo" }
+                                        }
+                                    }
+                                },
+                                "404": {
+                                    "description": "Conector não encontrado",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/Error" }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "delete": {
+                            "summary": "Deletar conector",
+                            "description": "Remove um conector e para todas as suas tasks",
+                            "parameters": [
+                                {
+                                    "name": "connector-name",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": { "type": "string" },
+                                    "example": "mysql-source-connector"
+                                }
+                            ],
+                            "responses": {
+                                "204": { "description": "Conector removido com sucesso" },
+                                "404": {
+                                    "description": "Conector não encontrado",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/Error" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/connectors/{connector-name}/status": {
+                        "get": {
+                            "summary": "Status do conector",
+                            "description": "Retorna o status atual do conector e suas tasks",
+                            "parameters": [
+                                {
+                                    "name": "connector-name",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": { "type": "string" },
+                                    "example": "mysql-source-connector"
+                                }
+                            ],
+                            "responses": {
+                                "200": {
+                                    "description": "Status do conector",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/ConnectorStatus" }
+                                        }
+                                    }
+                                },
+                                "404": {
+                                    "description": "Conector não encontrado",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": { "$ref": "#/components/schemas/Error" }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/connectors/{connector-name}/pause": {
+                        "put": {
+                            "summary": "Pausar conector",
+                            "description": "Pausa um conector e suas tasks",
+                            "parameters": [
+                                {
+                                    "name": "connector-name",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": { "type": "string" }
+                                }
+                            ],
+                            "responses": {
+                                "202": { "description": "Conector pausado" },
+                                "404": { "description": "Conector não encontrado" }
+                            }
+                        }
+                    },
+                    "/connectors/{connector-name}/resume": {
+                        "put": {
+                            "summary": "Resumir conector",
+                            "description": "Resume um conector pausado",
+                            "parameters": [
+                                {
+                                    "name": "connector-name",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": { "type": "string" }
+                                }
+                            ],
+                            "responses": {
+                                "202": { "description": "Conector resumido" },
+                                "404": { "description": "Conector não encontrado" }
+                            }
+                        }
+                    },
+                    "/connectors/{connector-name}/restart": {
+                        "post": {
+                            "summary": "Reiniciar conector",
+                            "description": "Reinicia um conector",
+                            "parameters": [
+                                {
+                                    "name": "connector-name",
+                                    "in": "path",
+                                    "required": true,
+                                    "schema": { "type": "string" }
+                                }
+                            ],
+                            "responses": {
+                                "204": { "description": "Conector reiniciado" },
+                                "404": { "description": "Conector não encontrado" }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "MySQLSourceConnector": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "example": "mysql-source-connector"
+                                },
+                                "config": {
+                                    "type": "object",
+                                    "properties": {
+                                        "connector.class": {
+                                            "type": "string",
+                                            "example": "io.debezium.connector.mysql.MySqlConnector"
+                                        },
+                                        "database.hostname": {
+                                            "type": "string",
+                                            "example": "195.200.6.202"
+                                        },
+                                        "database.port": {
+                                            "type": "string",
+                                            "example": "3310"
+                                        },
+                                        "database.user": {
+                                            "type": "string",
+                                            "example": "root"
+                                        },
+                                        "database.password": {
+                                            "type": "string",
+                                            "example": "6x{u!bl}N2x46W7@@@"
+                                        },
+                                        "topic.prefix": {
+                                            "type": "string",
+                                            "example": "dbserver1"
+                                        },
+                                        "database.include.list": {
+                                            "type": "string",
+                                            "example": "ArcosbridgeSQL"
+                                        },
+                                        "table.include.list": {
+                                            "type": "string",
+                                            "example": "ArcosbridgeSQL.*"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "MySQLSinkConnector": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "example": "mysql-sink-connector"
+                                },
+                                "config": {
+                                    "type": "object",
+                                    "properties": {
+                                        "connector.class": {
+                                            "type": "string",
+                                            "example": "io.confluent.connect.jdbc.JdbcSinkConnector"
+                                        },
+                                        "connection.url": {
+                                            "type": "string",
+                                            "example": "jdbc:mysql://195.200.6.202:3396/arcos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+                                        },
+                                        "connection.user": {
+                                            "type": "string",
+                                            "example": "arcos_db"
+                                        },
+                                        "topics.regex": {
+                                            "type": "string",
+                                            "example": "dbserver1\\.ArcosbridgeSQL\\..*"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "ConnectorInfo": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string" },
+                                "config": { "type": "object" },
+                                "tasks": {
+                                    "type": "array",
+                                    "items": { "$ref": "#/components/schemas/TaskInfo" }
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": ["source", "sink"]
+                                }
+                            }
+                        },
+                        "ConnectorStatus": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string",
+                                    "example": "mysql-source-connector"
+                                },
+                                "connector": {
+                                    "type": "object",
+                                    "properties": {
+                                        "state": {
+                                            "type": "string",
+                                            "enum": ["UNASSIGNED", "RUNNING", "PAUSED", "FAILED"],
+                                            "example": "RUNNING"
+                                        },
+                                        "worker_id": {
+                                            "type": "string",
+                                            "example": "172.19.0.4:8083"
+                                        }
+                                    }
+                                },
+                                "tasks": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "integer",
+                                                "example": 0
+                                            },
+                                            "state": {
+                                                "type": "string",
+                                                "enum": ["UNASSIGNED", "RUNNING", "PAUSED", "FAILED"],
+                                                "example": "RUNNING"
+                                            },
+                                            "worker_id": {
+                                                "type": "string",
+                                                "example": "172.19.0.4:8083"
+                                            }
+                                        }
+                                    }
+                                },
+                                "type": {
+                                    "type": "string",
+                                    "enum": ["source", "sink"],
+                                    "example": "source"
+                                }
+                            }
+                        },
+                        "TaskInfo": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "integer" },
+                                "config": { "type": "object" }
+                            }
+                        },
+                        "Error": {
+                            "type": "object",
+                            "properties": {
+                                "error_code": {
+                                    "type": "integer",
+                                    "example": 400
+                                },
+                                "message": {
+                                    "type": "string",
+                                    "example": "Connector configuration is invalid"
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            const ui = SwaggerUIBundle({
+                spec: spec,
+                dom_id: '#swagger-ui',
+                deepLinking: true,
+                presets: [
+                    SwaggerUIBundle.presets.apis,
+                    SwaggerUIStandalonePreset
+                ],
+                plugins: [
+                    SwaggerUIBundle.plugins.DownloadUrl
+                ],
+                layout: "StandaloneLayout",
+                tryItOutEnabled: true,
+                supportedSubmitMethods: ['get', 'post', 'put', 'delete'],
+                onComplete: function() {
+                    console.log("Swagger UI carregado com sucesso!");
+                },
+                onFailure: function(error) {
+                    console.error("Erro ao carregar Swagger UI:", error);
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

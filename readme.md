@@ -83,8 +83,85 @@ Debesium/
 ├── test-mysql-sink-connection.sh   # Teste conexão MySQL Sink (Linux/Mac)
 ├── test-mysql-sink-connection.ps1  # Teste conexão MySQL Sink (Windows)
 ├── monitor.sh                      # Script de monitoramento
+├── swagger.yml                     # Documentação OpenAPI da API REST
+├── swagger-ui.html                 # Interface web para visualizar a API
+├── API-README.md                   # Guia de uso da documentação da API
+├── Kafka-Connect-API.postman_collection.json # Collection Postman completa
+├── Debesium-Environment.postman_environment.json # Environment Postman
+├── POSTMAN-COLLECTION-GUIDE.md    # Guia de uso da collection Postman
 └── readme.md                       # Este arquivo
 ```
+
+## 📚 Documentação da API
+
+O projeto inclui documentação completa da API REST do Kafka Connect:
+
+- **`swagger.yml`** - Especificação OpenAPI 3.0.3 completa
+- **`swagger-ui.html`** - Interface web interativa (requer servidor HTTP)
+- **`swagger-ui-inline.html`** - Interface web que funciona diretamente no navegador
+- **`API-README.md`** - Guia detalhado de uso da API
+
+### 🌐 Como Usar a Documentação da API
+
+1. **Visualização Local (Recomendada)**: Abra o arquivo `swagger-ui-inline.html` no navegador
+   - ✅ Funciona diretamente sem problemas de CORS
+   - Simples: clique duas vezes no arquivo ou use `start swagger-ui-inline.html`
+
+2. **Visualização com servidor HTTP**: Use `swagger-ui.html` servindo através de um servidor local
+   - Exemplo: `python -m http.server 8000` e acesse `http://localhost:8000/swagger-ui.html`
+
+3. **Online**: Cole o conteúdo de `swagger.yml` em [editor.swagger.io](https://editor.swagger.io)
+
+4. **Endpoints Principais**:
+   - `GET /connectors` - Listar conectores
+   - `POST /connectors` - Criar conector
+   - `GET /connectors/{name}/status` - Status do conector
+   - `DELETE /connectors/{name}` - Remover conector
+   - `PUT /connectors/{name}/pause` - Pausar conector
+   - `PUT /connectors/{name}/resume` - Resumir conector
+
+💡 **Nota**: Se você encontrou o erro "Failed to load API definition" no `swagger-ui.html`, use o arquivo `swagger-ui-inline.html` que foi criado especificamente para resolver problemas de CORS quando arquivos são abertos diretamente no navegador.
+
+### 📋 Exemplos de Uso da API
+
+```bash
+# Listar conectores
+curl -X GET http://localhost:8083/connectors
+
+# Verificar status
+curl -X GET http://localhost:8083/connectors/mysql-source-connector/status
+
+# Pausar conector
+curl -X PUT http://localhost:8083/connectors/mysql-source-connector/pause
+
+# Reiniciar conector
+curl -X POST http://localhost:8083/connectors/mysql-source-connector/restart
+```
+
+### 📬 **Collection Postman**
+
+Para facilitar o uso da API, incluímos uma collection completa do Postman:
+
+- **`Kafka-Connect-API.postman_collection.json`** - Collection com todos os endpoints organizados
+- **`Debesium-Environment.postman_environment.json`** - Environment com variáveis pré-configuradas
+- **`POSTMAN-COLLECTION-GUIDE.md`** - Guia detalhado de importação e uso
+
+#### 🚀 **Como Usar**
+1. **Importe** os arquivos no Postman (Import → Upload Files)
+2. **Ative** o environment "Debesium - Local Environment"
+3. **Execute** os requests organizados por categoria:
+   - 🔧 System Info
+   - 📋 Connector Management
+   - 📊 Status & Monitoring
+   - 🎛️ Connector Control
+   - ⚙️ Task Management
+   - 🧪 Quick Tests
+
+#### 🎯 **Workflows Prontos**
+- **Setup Inicial**: Health Check → List Connectors → Create Connectors
+- **Monitoramento**: Status checks de ambos os conectores
+- **Troubleshooting**: Restart connectors, verificar tasks
+- **Manutenção**: Pause/Resume connectors
 
 ## ⚙️ Configuração
 

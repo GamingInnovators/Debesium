@@ -1,0 +1,529 @@
+openapi: 3.0.3
+info:
+  title: Kafka Connect REST API - Debesium Pipeline
+  description: |
+    API REST para gerenciar conectores Kafka Connect no pipeline Debesium.
+    
+    Esta API permite criar, monitorar e gerenciar conectores Debezium (source) e JDBC Sink (sink) 
+    para replicação de dados MySQL-to-MySQL.
+    
+    **Arquitetura:**
+    - MySQL Source (195.200.6.202:3310) → Debezium → Kafka → JDBC Sink → MySQL Sink (195.200.6.202:3396)
+    
+    **Conectores Configurados:**
+    - mysql-source-connector (Debezium MySQL CDC)
+    - mysql-sink-connector (JDBC Sink)
+  version: 1.0.0
+  contact:
+    name: Debesium Team
+servers:
+  - url: http://localhost:8083
+    description: Kafka Connect Local Server
+
+paths:
+  /:
+    get:
+      summary: Informações do servidor
+      description: Retorna informações básicas sobre o servidor Kafka Connect
+      responses:
+        '200':
+          description: Informações do servidor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                  commit:
+                    type: string
+                  kafka_cluster_id:
+                    type: string
+
+  /connectors:
+    get:
+      summary: Listar conectores
+      description: Retorna uma lista de todos os conectores registrados
+      responses:
+        '200':
+          description: Lista de conectores
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                example: ["mysql-source-connector", "mysql-sink-connector"]
+    
+    post:
+      summary: Criar conector
+      description: Cria um novo conector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/MySQLSourceConnector'
+                - $ref: '#/components/schemas/MySQLSinkConnector'
+      responses:
+        '201':
+          description: Conector criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorInfo'
+        '400':
+          description: Configuração inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Conector já existe
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /connectors/{connector-name}:
+    get:
+      summary: Obter configuração do conector
+      description: Retorna a configuração de um conector específico
+      parameters:
+        - name: connector-name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: mysql-source-connector
+      responses:
+        '200':
+          description: Configuração do conector
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorInfo'
+        '404':
+          description: Conector não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    
+    delete:
+      summary: Deletar conector
+      description: Remove um conector e para todas as suas tasks
+      parameters:
+        - name: connector-name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: mysql-source-connector
+      responses:
+        '204':
+          description: Conector removido com sucesso
+        '404':
+          description: Conector não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /connectors/{connector-name}/status:
+    get:
+      summary: Status do conector
+      description: Retorna o status atual do conector e suas tasks
+      parameters:
+        - name: connector-name
+          in: path
+          required: true
+          schema:
+            type: string
+          example: mysql-source-connector
+      responses:
+        '200':
+          description: Status do conector
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectorStatus'
+        '404':
+          description: Conector não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /connectors/{connector-name}/pause:
+    put:
+      summary: Pausar conector
+      description: Pausa um conector e suas tasks
+      parameters:
+        - name: connector-name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Conector pausado
+        '404':
+          description: Conector não encontrado
+
+  /connectors/{connector-name}/resume:
+    put:
+      summary: Resumir conector
+      description: Resume um conector pausado
+      parameters:
+        - name: connector-name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Conector resumido
+        '404':
+          description: Conector não encontrado
+
+  /connectors/{connector-name}/restart:
+    post:
+      summary: Reiniciar conector
+      description: Reinicia um conector
+      parameters:
+        - name: connector-name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Conector reiniciado
+        '404':
+          description: Conector não encontrado
+
+  /connectors/{connector-name}/tasks:
+    get:
+      summary: Listar tasks do conector
+      description: Retorna lista de tasks de um conector
+      parameters:
+        - name: connector-name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lista de tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TaskInfo'
+
+  /connectors/{connector-name}/tasks/{task-id}/restart:
+    post:
+      summary: Reiniciar task específica
+      description: Reinicia uma task específica de um conector
+      parameters:
+        - name: connector-name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: task-id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Task reiniciada
+        '404':
+          description: Conector ou task não encontrada
+
+  /connector-plugins:
+    get:
+      summary: Listar plugins disponíveis
+      description: Retorna lista de plugins de conectores disponíveis
+      responses:
+        '200':
+          description: Lista de plugins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConnectorPlugin'
+
+components:
+  schemas:
+    MySQLSourceConnector:
+      type: object
+      properties:
+        name:
+          type: string
+          example: mysql-source-connector
+        config:
+          type: object
+          properties:
+            connector.class:
+              type: string
+              example: io.debezium.connector.mysql.MySqlConnector
+            database.hostname:
+              type: string
+              example: "195.200.6.202"
+            database.port:
+              type: string
+              example: "3310"
+            database.user:
+              type: string
+              example: root
+            database.password:
+              type: string
+              example: "6x{u!bl}N2x46W7@@@"
+            database.server.id:
+              type: string
+              example: "184054"
+            topic.prefix:
+              type: string
+              example: dbserver1
+            database.include.list:
+              type: string
+              example: ArcosbridgeSQL
+            table.include.list:
+              type: string
+              example: "ArcosbridgeSQL.*"
+            schema.history.internal.kafka.bootstrap.servers:
+              type: string
+              example: "kafka:9092"
+            schema.history.internal.kafka.topic:
+              type: string
+              example: dbhistory.arcos
+            snapshot.mode:
+              type: string
+              example: initial
+            transforms:
+              type: string
+              example: unwrap
+            transforms.unwrap.type:
+              type: string
+              example: io.debezium.transforms.ExtractNewRecordState
+            transforms.unwrap.drop.tombstones:
+              type: string
+              example: "false"
+            transforms.unwrap.delete.handling.mode:
+              type: string
+              example: rewrite
+            transforms.unwrap.add.fields:
+              type: string
+              example: "op,ts_ms"
+    
+    MySQLSinkConnector:
+      type: object
+      properties:
+        name:
+          type: string
+          example: mysql-sink-connector
+        config:
+          type: object
+          properties:
+            connector.class:
+              type: string
+              example: io.confluent.connect.jdbc.JdbcSinkConnector
+            connection.url:
+              type: string
+              example: "jdbc:mysql://195.200.6.202:3396/arcos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+            connection.user:
+              type: string
+              example: arcos_db
+            connection.password:
+              type: string
+              example: "N7#vP9k$zL1@qXr!5TfG"
+            topics.regex:
+              type: string
+              example: "dbserver1\\.ArcosbridgeSQL\\..*"
+            auto.create:
+              type: string
+              example: "true"
+            auto.evolve:
+              type: string
+              example: "true"
+            insert.mode:
+              type: string
+              example: upsert
+            pk.mode:
+              type: string
+              example: record_key
+            pk.fields:
+              type: string
+              example: "_id"
+            transforms:
+              type: string
+              example: route
+            transforms.route.type:
+              type: string
+              example: org.apache.kafka.connect.transforms.RegexRouter
+            transforms.route.regex:
+              type: string
+              example: "dbserver1\\.ArcosbridgeSQL\\.(.*)"
+            transforms.route.replacement:
+              type: string
+              example: "$1"
+            key.converter:
+              type: string
+              example: org.apache.kafka.connect.json.JsonConverter
+            value.converter:
+              type: string
+              example: org.apache.kafka.connect.json.JsonConverter
+            key.converter.schemas.enable:
+              type: string
+              example: "false"
+            value.converter.schemas.enable:
+              type: string
+              example: "false"
+
+    ConnectorInfo:
+      type: object
+      properties:
+        name:
+          type: string
+        config:
+          type: object
+        tasks:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskInfo'
+        type:
+          type: string
+          enum: [source, sink]
+
+    ConnectorStatus:
+      type: object
+      properties:
+        name:
+          type: string
+          example: mysql-source-connector
+        connector:
+          type: object
+          properties:
+            state:
+              type: string
+              enum: [UNASSIGNED, RUNNING, PAUSED, FAILED]
+              example: RUNNING
+            worker_id:
+              type: string
+              example: "172.19.0.4:8083"
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 0
+              state:
+                type: string
+                enum: [UNASSIGNED, RUNNING, PAUSED, FAILED]
+                example: RUNNING
+              worker_id:
+                type: string
+                example: "172.19.0.4:8083"
+              trace:
+                type: string
+                description: Stack trace em caso de erro
+        type:
+          type: string
+          enum: [source, sink]
+          example: source
+
+    TaskInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+        config:
+          type: object
+
+    ConnectorPlugin:
+      type: object
+      properties:
+        class:
+          type: string
+          example: io.debezium.connector.mysql.MySqlConnector
+        type:
+          type: string
+          enum: [source, sink]
+        version:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error_code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Connector configuration is invalid"
+
+  examples:
+    CreateMySQLSourceConnector:
+      summary: Criar MySQL Source Connector
+      value:
+        name: mysql-source-connector
+        config:
+          connector.class: io.debezium.connector.mysql.MySqlConnector
+          database.hostname: "195.200.6.202"
+          database.port: "3310"
+          database.user: root
+          database.password: "6x{u!bl}N2x46W7@@@"
+          database.server.id: "184054"
+          topic.prefix: dbserver1
+          database.include.list: ArcosbridgeSQL
+          table.include.list: "ArcosbridgeSQL.*"
+          schema.history.internal.kafka.bootstrap.servers: "kafka:9092"
+          schema.history.internal.kafka.topic: dbhistory.arcos
+          snapshot.mode: initial
+          transforms: unwrap
+          transforms.unwrap.type: io.debezium.transforms.ExtractNewRecordState
+          transforms.unwrap.drop.tombstones: "false"
+          transforms.unwrap.delete.handling.mode: rewrite
+          transforms.unwrap.add.fields: "op,ts_ms"
+
+    CreateMySQLSinkConnector:
+      summary: Criar MySQL Sink Connector
+      value:
+        name: mysql-sink-connector
+        config:
+          connector.class: io.confluent.connect.jdbc.JdbcSinkConnector
+          connection.url: "jdbc:mysql://195.200.6.202:3396/arcos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+          connection.user: arcos_db
+          connection.password: "N7#vP9k$zL1@qXr!5TfG"
+          topics.regex: "dbserver1\\.ArcosbridgeSQL\\..*"
+          auto.create: "true"
+          auto.evolve: "true"
+          insert.mode: upsert
+          pk.mode: record_key
+          pk.fields: "_id"
+          transforms: route
+          transforms.route.type: org.apache.kafka.connect.transforms.RegexRouter
+          transforms.route.regex: "dbserver1\\.ArcosbridgeSQL\\.(.*)"
+          transforms.route.replacement: "$1"
+          key.converter: org.apache.kafka.connect.json.JsonConverter
+          value.converter: org.apache.kafka.connect.json.JsonConverter
+          key.converter.schemas.enable: "false"
+          value.converter.schemas.enable: "false"
+
+tags:
+  - name: Connectors
+    description: Operações para gerenciar conectores
+  - name: Status
+    description: Monitoramento e status dos conectores
+  - name: Tasks
+    description: Gerenciamento de tasks dos conectores
+  - name: System
+    description: Informações do sistema 

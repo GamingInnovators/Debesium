@@ -1,0 +1,374 @@
+{
+  "info": {
+    "name": "Kafka Connect API - Debesium Pipeline",
+    "description": "Collection completa para gerenciar conectores Kafka Connect no pipeline Debesium.\n\n**Arquitetura:**\nMySQL Source (195.200.6.202:3310) → Debezium → Kafka → JDBC Sink → MySQL Sink (195.200.6.202:3396)\n\n**Conectores:**\n- mysql-source-connector (Debezium MySQL CDC)\n- mysql-sink-connector (JDBC Sink)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "debesium-kafka-connect-api",
+    "version": {
+      "major": 1,
+      "minor": 0,
+      "patch": 0
+    }
+  },
+  "item": [
+    {
+      "name": "🔧 System Info",
+      "item": [
+        {
+          "name": "Get Server Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Retorna informações básicas sobre o servidor Kafka Connect"
+          },
+          "response": []
+        },
+        {
+          "name": "List Available Plugins",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connector-plugins",
+              "host": ["{{base_url}}"],
+              "path": ["connector-plugins"]
+            },
+            "description": "Lista todos os plugins de conectores disponíveis"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📋 Connector Management",
+      "item": [
+        {
+          "name": "List All Connectors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors",
+              "host": ["{{base_url}}"],
+              "path": ["connectors"]
+            },
+            "description": "Lista todos os conectores registrados"
+          },
+          "response": []
+        },
+        {
+          "name": "Create MySQL Source Connector",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"mysql-source-connector\",\n  \"config\": {\n    \"connector.class\": \"io.debezium.connector.mysql.MySqlConnector\",\n    \"database.hostname\": \"195.200.6.202\",\n    \"database.port\": \"3310\",\n    \"database.user\": \"root\",\n    \"database.password\": \"6x{u!bl}N2x46W7@@@\",\n    \"database.server.id\": \"184054\",\n    \"topic.prefix\": \"dbserver1\",\n    \"database.include.list\": \"ArcosbridgeSQL\",\n    \"table.include.list\": \"ArcosbridgeSQL.*\",\n    \"schema.history.internal.kafka.bootstrap.servers\": \"kafka:9092\",\n    \"schema.history.internal.kafka.topic\": \"dbhistory.arcos\",\n    \"snapshot.mode\": \"initial\",\n    \"transforms\": \"unwrap\",\n    \"transforms.unwrap.type\": \"io.debezium.transforms.ExtractNewRecordState\",\n    \"transforms.unwrap.drop.tombstones\": \"false\",\n    \"transforms.unwrap.delete.handling.mode\": \"rewrite\",\n    \"transforms.unwrap.add.fields\": \"op,ts_ms\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/connectors",
+              "host": ["{{base_url}}"],
+              "path": ["connectors"]
+            },
+            "description": "Cria o conector MySQL Source (Debezium) para capturar mudanças do banco de origem"
+          },
+          "response": []
+        },
+        {
+          "name": "Create MySQL Sink Connector",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"mysql-sink-connector\",\n  \"config\": {\n    \"connector.class\": \"io.confluent.connect.jdbc.JdbcSinkConnector\",\n    \"connection.url\": \"jdbc:mysql://195.200.6.202:3396/arcos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC\",\n    \"connection.user\": \"arcos_db\",\n    \"connection.password\": \"N7#vP9k$zL1@qXr!5TfG\",\n    \"topics.regex\": \"dbserver1\\\\.ArcosbridgeSQL\\\\..*\",\n    \"auto.create\": \"true\",\n    \"auto.evolve\": \"true\",\n    \"insert.mode\": \"upsert\",\n    \"pk.mode\": \"record_key\",\n    \"pk.fields\": \"_id\",\n    \"transforms\": \"route\",\n    \"transforms.route.type\": \"org.apache.kafka.connect.transforms.RegexRouter\",\n    \"transforms.route.regex\": \"dbserver1\\\\.ArcosbridgeSQL\\\\.(.*)\",\n    \"transforms.route.replacement\": \"$1\",\n    \"key.converter\": \"org.apache.kafka.connect.json.JsonConverter\",\n    \"value.converter\": \"org.apache.kafka.connect.json.JsonConverter\",\n    \"key.converter.schemas.enable\": \"false\",\n    \"value.converter.schemas.enable\": \"false\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/connectors",
+              "host": ["{{base_url}}"],
+              "path": ["connectors"]
+            },
+            "description": "Cria o conector MySQL Sink (JDBC) para replicar dados no banco de destino"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Connector Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}"]
+            },
+            "description": "Obtém a configuração de um conector específico"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Connector",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}"]
+            },
+            "description": "Remove um conector e para todas as suas tasks"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Status & Monitoring",
+      "item": [
+        {
+          "name": "Get MySQL Source Connector Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/mysql-source-connector/status",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "mysql-source-connector", "status"]
+            },
+            "description": "Verifica o status do conector MySQL Source"
+          },
+          "response": []
+        },
+        {
+          "name": "Get MySQL Sink Connector Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/mysql-sink-connector/status",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "mysql-sink-connector", "status"]
+            },
+            "description": "Verifica o status do conector MySQL Sink"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Connector Status (Generic)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}", "status"]
+            },
+            "description": "Verifica o status de um conector específico (use a variável connector_name)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🎛️ Connector Control",
+      "item": [
+        {
+          "name": "Pause Connector",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}/pause",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}", "pause"]
+            },
+            "description": "Pausa um conector e suas tasks"
+          },
+          "response": []
+        },
+        {
+          "name": "Resume Connector",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}/resume",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}", "resume"]
+            },
+            "description": "Resume um conector pausado"
+          },
+          "response": []
+        },
+        {
+          "name": "Restart Connector",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}/restart",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}", "restart"]
+            },
+            "description": "Reinicia um conector"
+          },
+          "response": []
+        },
+        {
+          "name": "Restart MySQL Source Connector",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/mysql-source-connector/restart",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "mysql-source-connector", "restart"]
+            },
+            "description": "Reinicia especificamente o conector MySQL Source"
+          },
+          "response": []
+        },
+        {
+          "name": "Restart MySQL Sink Connector",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/mysql-sink-connector/restart",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "mysql-sink-connector", "restart"]
+            },
+            "description": "Reinicia especificamente o conector MySQL Sink"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Task Management",
+      "item": [
+        {
+          "name": "List Connector Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}", "tasks"]
+            },
+            "description": "Lista todas as tasks de um conector"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Task Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}/tasks/{{task_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}", "tasks", "{{task_id}}", "status"]
+            },
+            "description": "Obtém o status de uma task específica"
+          },
+          "response": []
+        },
+        {
+          "name": "Restart Task",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/{{connector_name}}/tasks/{{task_id}}/restart",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "{{connector_name}}", "tasks", "{{task_id}}", "restart"]
+            },
+            "description": "Reinicia uma task específica"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🧪 Quick Tests",
+      "item": [
+        {
+          "name": "Health Check - All Connectors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors",
+              "host": ["{{base_url}}"],
+              "path": ["connectors"]
+            },
+            "description": "Teste rápido para verificar se há conectores registrados"
+          },
+          "response": []
+        },
+        {
+          "name": "Quick Status Check - Both Connectors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/connectors/mysql-source-connector/status",
+              "host": ["{{base_url}}"],
+              "path": ["connectors", "mysql-source-connector", "status"]
+            },
+            "description": "Verificação rápida do status do source connector"
+          },
+          "response": []
+        },
+        {
+          "name": "Pipeline Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Verifica se o Kafka Connect está rodando"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8083",
+      "description": "URL base do Kafka Connect REST API"
+    },
+    {
+      "key": "connector_name",
+      "value": "mysql-source-connector",
+      "description": "Nome do conector para requisições genéricas"
+    },
+    {
+      "key": "task_id",
+      "value": "0",
+      "description": "ID da task (geralmente 0 para conectores simples)"
+    }
+  ]
+} 
