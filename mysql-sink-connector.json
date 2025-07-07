@@ -3,7 +3,7 @@
   "config": {
     "connector.class": "io.confluent.connect.jdbc.JdbcSinkConnector",
     "tasks.max": "1",
-    "topics.regex": "dbserver1\\.arcos-bridge\\..*",
+    "topics.regex": "dbserver1\\.ArcosbridgeSQL\\..*",
     "connection.url": "jdbc:mysql://195.200.6.202:3396/arcos_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC",
     "connection.user": "arcos_db",
     "connection.password": "N7#vP9k$zL1@qXr!5TfG",
@@ -20,7 +20,7 @@
     "table.name.format": "${topic}",
     "transforms": "route",
     "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
-    "transforms.route.regex": "dbserver1\\.arcos-bridge\\.(.*)",
+    "transforms.route.regex": "dbserver1\\.ArcosbridgeSQL\\.(.*)",
     "transforms.route.replacement": "$1"
   }
 } 

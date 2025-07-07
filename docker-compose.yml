@@ -55,7 +55,7 @@ services:
       KEY_CONVERTER_SCHEMAS_ENABLE: 'false'
       VALUE_CONVERTER_SCHEMAS_ENABLE: 'false'
     volumes:
-      - ./mongo-connector.json:/tmp/mongo-connector.json
+      - ./mysql-source-connector.json:/tmp/mysql-source-connector.json
       - ./mysql-sink-connector.json:/tmp/mysql-sink-connector.json
       - ./init-connector.sh:/tmp/init-connector.sh
     healthcheck:
@@ -71,10 +71,9 @@ services:
       connect:
         condition: service_healthy
     volumes:
-      - ./mongo-connector.json:/tmp/mongo-connector.json
+      - ./mysql-source-connector.json:/tmp/mysql-source-connector.json
       - ./mysql-sink-connector.json:/tmp/mysql-sink-connector.json
       - ./init-connector.sh:/tmp/init-connector.sh
     command: ["/bin/sh", "/tmp/init-connector.sh"]
 
-volumes:
-  mongo_data:
+

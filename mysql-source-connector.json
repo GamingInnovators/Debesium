@@ -1,0 +1,22 @@
+{
+  "name": "mysql-source-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "database.hostname": "195.200.6.202",
+    "database.port": "3310",
+    "database.user": "root",
+    "database.password": "6x{u!bl}N2x46W7@@@",
+    "database.server.id": "184054",
+    "database.server.name": "dbserver1",
+    "database.include.list": "ArcosbridgeSQL",
+    "table.include.list": "ArcosbridgeSQL.*",
+    "database.history.kafka.bootstrap.servers": "kafka:9092",
+    "database.history.kafka.topic": "dbhistory.arcos",
+    "snapshot.mode": "initial",
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false",
+    "transforms.unwrap.delete.handling.mode": "rewrite",
+    "transforms.unwrap.add.fields": "op,ts_ms"
+  }
+} 

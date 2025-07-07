@@ -6,21 +6,21 @@ until curl -f http://connect:8083/; do
   sleep 10
 done
 
-echo "Connect API está pronta! Registrando conectores..."
+echo "Connect API está pronta! Registrando conector MySQL..."
 
-# Registrar conector MongoDB
-echo "Registrando conector MongoDB..."
+# Registrar conector MySQL Source
+echo "Registrando conector MySQL Source..."
 curl -X POST -H "Content-Type: application/json" \
-  --data @/tmp/mongo-connector.json \
+  --data @/tmp/mysql-source-connector.json \
   http://connect:8083/connectors
 
 echo -e "\n"
 
-# Aguardar um pouco antes de registrar o próximo conector
+# Aguardar um pouco antes de registrar o sink
 sleep 5
 
-# Registrar conector MySQL
-echo "Registrando conector MySQL..."
+# Registrar conector MySQL Sink
+echo "Registrando conector MySQL Sink..."
 curl -X POST -H "Content-Type: application/json" \
   --data @/tmp/mysql-sink-connector.json \
   http://connect:8083/connectors
@@ -31,10 +31,18 @@ echo -e "\n"
 echo "Verificando status dos conectores..."
 sleep 10
 
-echo "Status do conector MongoDB:"
-curl -X GET http://connect:8083/connectors/mongo-connector/status
+echo "Status do conector MySQL Source:"
+curl -X GET http://connect:8083/connectors/mysql-source-connector/status
 
-echo -e "\n\nStatus do conector MySQL:"
+echo -e "\n"
+
+echo "Status do conector MySQL Sink:"
 curl -X GET http://connect:8083/connectors/mysql-sink-connector/status
 
-echo -e "\n\nConectores registrados com sucesso!"
+echo -e "\n\nConectores MySQL registrados com sucesso!"
+
+# Listar todos os conectores
+echo "Conectores disponíveis:"
+curl -X GET http://connect:8083/connectors
+
+echo -e "\n"
